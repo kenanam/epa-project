@@ -1,89 +1,70 @@
 #!/bin/bash
-# This script installs and configures MariaDB, sets up a database, and generates credentials.
-# This is the backend DB instance for your frontend WordPress site. I'd recommend deploying on an ARM Ubuntu 24.04 instance to maximize cost saving and performance.
-# You'll need to create an S3 bucket on AWS to securely store your creds.txt file, i.e., s3://your-bucket-name/
+# Backend Setup Script for WordPress Database
+# -----------------------------------------------------
+# This script installs and configures MariaDB for our WordPress backend.
+# It creates a dedicated database and user, updates the WordPress configuration,
+# and backs up the credentials and database dump to an S3 bucket.
+#
+# IMPORTANT:
+# - Ensure you have created the S3 bucket (e.g., s3://my-wp-deploy-bucket).
+# - Replace placeholders (REPLACE_DBUSERNAME, REPLACE_DBPASSWORD, REPLACE_FRONTEND_IP)
+#   with your actual values.
+# - Confirm that /var/www/html/wp-config.php is the correct path for your WordPress config file.
+# - For your backend instance, the public IP is: 13.43.103.133
 
-# Update the package lists for upgrades and install the latest available versions
-apt -y update && apt -y upgrade
+# 1. Update and upgrade system packages.
+sudo apt -y update && sudo apt -y upgrade
 
-# Install the AWS CLI tool using Snap for managing AWS resources
+# 2. Install the AWS CLI using Snap to interact with AWS services.
 snap install aws-cli --classic
 
-# Install MariaDB server and client packages without user interaction
-apt install mariadb-server mariadb-client -y
+# 3. Install MariaDB server and client packages.
+sudo apt install mariadb-server mariadb-client -y
 
-# Modify the MariaDB configuration file to allow connections from any IP address
-# This changes the bind-address setting to 0.0.0.0 (listen on all interfaces)
-sed -i 's/^bind-address\s*=.*/bind-address = 0.0.0.0/' /etc/mysql/mariadb.conf.d/50-server.cnf
+# 4. Change MariaDB's bind-address so that it listens on all network interfaces.
+sudo sed -i 's/^bind-address\s*=.*/bind-address = 0.0.0.0/' /etc/mysql/mariadb.conf.d/50-server.cnf
 
-# Restart the MariaDB service to apply the configuration changes and verify status with error checking
-mysqladmin ping && systemctl restart mariadb
+# 5. Restart MariaDB to apply the configuration changes.
+mysqladmin ping && sudo systemctl restart mariadb
 
-# Generate a random password and username for the WordPress database
-# 'tr -dc' removes unwanted characters, and 'head -c 25' limits output to 25 characters
-# password=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 25)
-# username=$(tr -dc 'A-Za-z' < /dev/urandom | head -c 25)
+# 6. Set fixed credentials for the WordPress database.
+#    We are using preset secrets (not random generated values).
+username=REPLACE_DBUSERNAME    # Replace with your chosen database username.
+password=REPLACE_DBPASSWORD    # Replace with your chosen database password.
 
-# Uncomment to use your password and username using Github secrets. Replace DBPASSWORD and DBUSERNAME with your secret.
-username=REPLACE_DBUSERNAME
-password=REPLACE_DBPASSWORD
-
-# Save the generated credentials to a file for later use
-# 'creds.txt' will contain the password and username on separate lines
+# 7. Save these credentials to a file (creds.txt) for backup and future reference.
 echo $password > creds.txt
 echo $username >> creds.txt
 
-# Create a new database for WordPress
+# 8. Create a new database for WordPress using the username as the database name.
 sudo mysql -e "CREATE DATABASE IF NOT EXISTS $username"
 
-# Create a new MariaDB user with the generated username and password
+# 9. Create a new MariaDB user that can connect from your frontend server.
+#    Replace REPLACE_FRONTEND_IP with your actual frontend instance IP.
 sudo mysql -e "CREATE USER IF NOT EXISTS '$username'@'REPLACE_FRONTEND_IP' IDENTIFIED BY '$password'"
 
-# Grant the new user full privileges on their database
+# 10. Grant the new user full privileges on their database.
 sudo mysql -e "GRANT ALL PRIVILEGES ON $username.* TO '$username'@'REPLACE_FRONTEND_IP'"
 
-# Refresh MariaDB privileges to apply changes immediately
+# 11. Refresh MariaDB privileges to apply the changes immediately.
 sudo mysql -e "FLUSH PRIVILEGES"
 
-# Add the password and username to the wp-config.php file
-sed -i "s/password_here/$password/g" /var/www/html/wp-config.php
-sed -i "s/username_here/$username/g" /var/www/html/wp-config.php
-sed -i "s/database_name_here/$username/g" /var/www/html/wp-config.php
+# 12. Update the WordPress configuration file with the new database credentials.
+#     Make sure that /var/www/html/wp-config.php is the correct location.
+sudo sed -i "s/password_here/$password/g" /var/www/html/wp-config.php
+sudo sed -i "s/username_here/$username/g" /var/www/html/wp-config.php
+sudo sed -i "s/database_name_here/$username/g" /var/www/html/wp-config.php
 
-# Upload the creds.txt file to the specified S3 bucket
-# This securely stores the credentials file in AWS S3 for later use or backup
+# 13. Back up the credentials file (creds.txt) to your S3 bucket.
 aws s3 cp /root/creds.txt s3://my-wp-deploy-bucket
 
-# Backup of my DB and stored on S3 for backup and security. Please specify your DBNAME. Consider using compression.
+# 14. Create a backup of your database and store it on S3.
+#     (When prompted for the MySQL root password, enter the correct password.)
 mysqldump -u root -p $username > /tmp/wordpressDB.sql
 aws s3 cp /tmp/wordpressDB.sql s3://my-wp-deploy-bucket
 
-# Restore your DB
+# 15. (Optional) Restore commands for your database (commented out for now):
 # aws s3 cp s3://my-wp-deploy-bucket/wordpressDB.sql /tmp/wordpressDB.sql
 # sudo mysql $username < /tmp/wordpressDB.sql
 
-# Instructions to Create an IAM Role for EC2:
-# ===========================================
-
-# 1. Go to the IAM Service in the AWS Management Console.
-# 2. Create Role:
-#    - Click on "Create role."
-# 3. Select EC2 as the Trusted Entity:
-#    - Under "Select trusted entity," choose "AWS Service."
-#    - Under "Use case," select "EC2."
-#    - Click "Next."
-# 4. Attach Policies:
-#    - Select a predefined policy like "AmazonS3FullAccess" for S3 access 
-#      or create a custom policy with the permissions you need.
-#    - Click "Next."
-# 5. Name the Role:
-#    - Provide a name (e.g., "EC2S3AccessRole").
-#    - Click "Create role."
-# 6. Attach the Role to Your EC2 Instance
-#    - After confirming the role is properly created and associated with EC2:
-#    - Go to the EC2 Dashboard.
-#    - Select your instance and click Actions > Security > Modify IAM Role.
-#    - The role should now appear in the dropdown menu.
-
-# Note: The IAM Role can be attached to an EC2 instance for access to AWS services 
-# (e.g., S3) without hardcoding credentials into your scripts.
+# 16. (The IAM Role creation instructions are moved to the README for clarity.)
