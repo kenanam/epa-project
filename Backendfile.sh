@@ -29,8 +29,8 @@ mysqladmin ping && sudo systemctl restart mariadb
 
 # 6. Set fixed credentials for the WordPress database.
 #    We are using preset secrets (not random generated values).
-username=REPLACE_DBUSERNAME    # Replace with your chosen database username.
-password=REPLACE_DBPASSWORD    # Replace with your chosen database password.
+username=DB_USERNAME    # Replace with your chosen database username - now correct
+password=DB_PASSWORD    # Replace with your chosen database password - now correct
 
 # 7. Save these credentials to a file (creds.txt) for backup and future reference.
 echo $password > creds.txt
@@ -41,10 +41,10 @@ sudo mysql -e "CREATE DATABASE IF NOT EXISTS $username"
 
 # 9. Create a new MariaDB user that can connect from your frontend server.
 #    Replace REPLACE_FRONTEND_IP with your actual frontend instance IP.
-sudo mysql -e "CREATE USER IF NOT EXISTS '$username'@'REPLACE_FRONTEND_IP' IDENTIFIED BY '$password'"
+sudo mysql -e "CREATE USER IF NOT EXISTS '$username'@'FRONTEND_IP' IDENTIFIED BY '$password'"
 
 # 10. Grant the new user full privileges on their database.
-sudo mysql -e "GRANT ALL PRIVILEGES ON $username.* TO '$username'@'REPLACE_FRONTEND_IP'"
+sudo mysql -e "GRANT ALL PRIVILEGES ON $username.* TO '$username'@'FRONTEND_IP'"
 
 # 11. Refresh MariaDB privileges to apply the changes immediately.
 sudo mysql -e "FLUSH PRIVILEGES"
