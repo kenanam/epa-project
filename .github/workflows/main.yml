@@ -34,23 +34,23 @@ jobs:
 
       run: |
 
-        sed -i 's/REPLACE_DOMAIN/${{ secrets.DOMAIN }}/g' ./configs/nginx.conf
+        sed -i 's/REPLACE_DOMAIN/${{ secrets.DOMAIN }}/g' ./nginx.conf
 
-        sed -i 's/REPLACE_DOMAIN/${{ secrets.DOMAIN }}/g' ./scripts/Frontend.sh
+        sed -i 's/REPLACE_DOMAIN/${{ secrets.DOMAIN }}/g' ./Frontendfile.sh
 
-        sed -i 's/REPLACE_EMAIL/${{ secrets.EMAIL }}/g' ./scripts/Frontend.sh
+        sed -i 's/REPLACE_EMAIL/${{ secrets.EMAIL }}/g' ./Frontendfile.sh
 
-        sed -i 's/FRONTEND_IP/${{ secrets.FRONTEND_IP }}/g' ./scripts/Backend.sh
+        sed -i 's/FRONTEND_IP/${{ secrets.FRONTEND_IP }}/g' ./Backendfile.sh
 
-        sed -i 's/DB_USERNAME/${{ secrets.DB_USERNAME }}/g' ./scripts/Frontend.sh
+        sed -i 's/DB_USERNAME/${{ secrets.DB_USERNAME }}/g' ./Frontendfile.sh
 
-        sed -i 's/DB_PASSWORD/${{ secrets.DB_PASSWORD }}/g' ./scripts/Frontend.sh
+        sed -i 's/DB_PASSWORD/${{ secrets.DB_PASSWORD }}/g' ./Frontendfile.sh
 
-        sed -i 's/DB_USERNAME/${{ secrets.DB_USERNAME }}/g' ./scripts/Backend.sh
+        sed -i 's/DB_USERNAME/${{ secrets.DB_USERNAME }}/g' ./Backendfile.sh
 
-        sed -i 's/DB_PASSWORD/${{ secrets.DB_PASSWORD }}/g' ./scripts/Backend.sh
+        sed -i 's/DB_PASSWORD/${{ secrets.DB_PASSWORD }}/g' ./Backendfile.sh
 
-        sed -i 's/BACKEND_IP/${{ secrets.BACKEND_IP }}/g' ./scripts/Frontend.sh
+        sed -i 's/BACKEND_IP/${{ secrets.BACKEND_IP }}/g' ./Frontendfile.sh
 
 
     - name: Copy files to VM
@@ -63,7 +63,7 @@ jobs:
 
       run: |
 
-        ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }} 'sudo sh /home/ubuntu/Chat-Bot-Project/scripts/Frontend.sh'
+        ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }} 'sudo sh /home/ubuntu/epa-project/Frontendfile.sh'
  
  
       # Backend
@@ -84,5 +84,5 @@ jobs:
 
       run: |
 
-        ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }} 'sudo sh /home/ubuntu/Chat-Bot-Project/scripts/Backend.sh'
+        ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }} 'sudo sh /home/ubuntu/epa-project/scripts/Backendfile.sh'
  
