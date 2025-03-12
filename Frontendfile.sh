@@ -121,10 +121,10 @@ sudo find /var/www/html/ -type d -exec chmod 0755 {} \;
 sudo find /var/www/html/ -type f -exec chmod 0644 {} \;
 
 # Update wp-config.php with the database credentials
-sed -i "s/username_here/REPLACE_DBUSERNAME/g" /var/www/html/wp-config.php
-sed -i "s/password_here/REPLACE_DBPASSWORD/g" /var/www/html/wp-config.php
-sed -i "s/database_name_here/REPLACE_DBUSERNAME/g" /var/www/html/wp-config.php
-sed -i "s/localhost/REPLACE_BACKEND_IP/g" /var/www/html/wp-config.php
+sed -i "s/username_here/DB_USERNAME/g" /var/www/html/wp-config.php
+sed -i "s/password_here/DB_PASSWORD/g" /var/www/html/wp-config.php
+sed -i "s/database_name_here/DB_USERNAME/g" /var/www/html/wp-config.php
+sed -i "s/localhost/BACKEND_IP/g" /var/www/html/wp-config.php
 
 SALT=$(curl -L https://api.wordpress.org/secret-key/1.1/salt/)
 STRING='put your unique phrase here'
