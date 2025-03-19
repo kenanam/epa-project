@@ -65,7 +65,7 @@ my_domain=REPLACE_DOMAIN
 elastic_ip=REPLACE_FRONTEND_IP
 
 # Update nginx configuration file
-sed -i "s/SERVERNAME/$my_domain/g" /etc/nginx/conf.d/nginx.conf
+sed -i "s/REPLACE_DOMAIN/$my_domain/g" /etc/nginx/conf.d/nginx.conf
 nginx -t && systemctl reload nginx # this will only reload nginx if the test is successful
 
 # Update package list and install Certbot and Certbot Nginx plugin
