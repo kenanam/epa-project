@@ -117,7 +117,7 @@ snap install aws-cli --classic
 # This securely backsup and stores the wp-config.php credentials on S3 
 aws s3 cp /var/www/html/wp-config.php s3://my-wp-deploy-bucket
 
-# Install chkrootkit vulnerability scanning tool
+# Install chkrootkit vulnerability scanning tool.
 sudo apt update
 sudo DEBIAN_FRONTEND=noninteractive apt install chkrootkit -y
 
