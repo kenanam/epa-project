@@ -34,9 +34,9 @@ check_exit_status "apt upgrade"
 snap install aws-cli --classic
 
 # Clone the GitHub repository
-log "Cloning GitHub repository..."
-sudo git clone https://github.com/kenanam/epa-project.git /root/wordpress-project 
-check_exit_status "git clone"
+#log "Cloning GitHub repository..."
+#sudo git clone https://github.com/kenanam/epa-project.git /root/wordpress-project 
+#check_exit_status "git clone"
 
 # Change permissions of the cloned repository
 log "Changing permissions of the cloned repository..."
