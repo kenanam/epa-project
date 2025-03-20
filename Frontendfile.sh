@@ -58,7 +58,12 @@ sudo systemctl stop apache2 # stops apache because we're aleady using nginx
 sudo systemctl disable apache2 # disables apache from starting on a server reboot
 
 sudo mv /var/www/html/index.html /var/www/html/index.html.old # rename apache testing page
-sudo mv /root/wordpress-project/configs/nginx.conf /etc/nginx/conf.d/nginx.conf
+# Instead of:
+# sudo mv /root/wordpress-project/configs/nginx.conf /etc/nginx/conf.d/nginx.conf
+
+# Use:
+sudo mv /home/ubuntu/epa-project/configs/nginx.conf /etc/nginx/conf.d/nginx.conf
+
 
 # dns_record=$(curl -s icanhazip.com | sed 's/^/ec2-/; s/\./-/g; s/$/.compute-1.amazonaws.com/')
 my_domain=REPLACE_DOMAIN
