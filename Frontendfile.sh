@@ -39,9 +39,9 @@ snap install aws-cli --classic
 #check_exit_status "git clone"
 
 # Change permissions of the cloned repository
-log "Changing permissions of the cloned repository..."
-sudo chmod -R 755 /root/wordpress-project
-check_exit_status "chmod"
+#log "Changing permissions of the cloned repository..."
+#sudo chmod -R 755 /root/wordpress-project
+#check_exit_status "chmod"
 
 # Run the setup script
 log "Running lemp-setup.sh script..."
