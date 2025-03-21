@@ -62,7 +62,7 @@ sudo mv /var/www/html/index.html /var/www/html/index.html.old # rename apache te
 # sudo mv /root/wordpress-project/configs/nginx.conf /etc/nginx/conf.d/nginx.conf
 
 # Use:
-sudo mv /home/ubuntu/epa-project/configs/nginx.conf /etc/nginx/conf.d/nginx.conf
+sudo mv /home/ubuntu/epa-project/nginx.conf /etc/nginx/conf.d/nginx.conf
 
 
 # dns_record=$(curl -s icanhazip.com | sed 's/^/ec2-/; s/\./-/g; s/$/.compute-1.amazonaws.com/')
