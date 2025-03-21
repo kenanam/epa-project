@@ -1,36 +1,36 @@
 #!/bin/bash
+# Frontend Setup Script for WordPress and Nginx Configuration
 
 # Log file path
 LOG_FILE="/var/log/script_execution.log"
 
 log() {
-    echo "$(date +"%Y-%m-%d %H:%M:%S") - $1" | tee -a $LOG_FILE
+  echo "$(date +"%Y-%m-%d %H:%M:%S") - $1" | tee -a $LOG_FILE
 }
 
 # Function to check the exit status of the last executed command
 check_exit_status() {
-    if [ $? -ne 0 ]; then
-        echo "Error: $1 failed." | tee -a $LOG_FILE
-        exit 1
-    else
-        echo "$1 succeeded." | tee -a $LOG_FILE
-    fi
+  if [ $? -ne 0 ]; then
+    echo "Error: $1 failed." | tee -a $LOG_FILE
+    exit 1
+  else
+    echo "$1 succeeded." | tee -a $LOG_FILE
+  fi
 }
 
 # Clear the log file at the beginning of the script
 > $LOG_FILE
 
-# Update package lists
-log "Running apt update..." 
+# Update package lists and upgrade packages
+log "Running apt update..."
 sudo apt -y update
 check_exit_status "apt update"
 
-# Upgrade installed packages
 log "Running apt upgrade..."
 sudo apt -y upgrade
 check_exit_status "apt upgrade"
 
-# Install the AWS CLI tool using Snap for managing AWS resources
+# Install AWS CLI using Snap
 snap install aws-cli --classic
 
 # (Git clone and permission changes are handled by GitHub Actions)
@@ -53,38 +53,40 @@ sudo mv /var/www/html/index.html /var/www/html/index.html.old  # Rename Apache t
 # Move the nginx.conf from the repository to Nginx's configuration directory
 sudo mv /home/ubuntu/epa-project/nginx.conf /etc/nginx/conf.d/nginx.conf
 
-# ===== Change Starts Here =====
-# Use a single domain variable: my_domain
+# ===== Variable Declarations =====
+# Use a single domain variable: my_domain.
 my_domain=REPLACE_DOMAIN
-# (Optional: if you do not need elastic_ip in your script, you may remove or ignore this line)
+# (Optional: if you do not need elastic_ip, you can remove this line)
 elastic_ip=REPLACE_FRONTEND_IP
 
-# Instead of performing a substitution here, rely on the workflow to replace placeholders.
-# Remove or comment out the following two lines if using centralized workflow substitutions:
-# sed -i "s/REPLACE_DOMAIN/$my_domain/g" /etc/nginx/conf.d/nginx.conf
-# nginx -t && systemctl reload nginx
-# ===== Change Ends Here =====
+# Note: We rely on the GitHub Actions workflow to perform substitutions in our files.
+# Therefore, we have removed duplicate sed substitutions from this script.
+
+# ===== Set FastCGI Timeout Settings =====
+# Append FastCGI timeout directives to nginx.conf if not already present.
+if ! grep -q "fastcgi_read_timeout" /etc/nginx/conf.d/nginx.conf; then
+  echo "fastcgi_read_timeout 300;" | sudo tee -a /etc/nginx/conf.d/nginx.conf
+  echo "fastcgi_send_timeout 300;" | sudo tee -a /etc/nginx/conf.d/nginx.conf
+  echo "fastcgi_connect_timeout 300;" | sudo tee -a /etc/nginx/conf.d/nginx.conf
+fi
+
+# Test and reload Nginx to apply changes
+sudo nginx -t && sudo systemctl reload nginx
 
 log "Installing Certbot and Certbot Nginx plugin..."
 sudo apt update -y
 sudo apt upgrade -y
 sudo apt install -y certbot python3-certbot-nginx
 
-# ===== Change Starts Here =====
-# Use my_domain for Certbot instead of a separate DOMAIN variable.
+# ===== Use my_domain for Certbot =====
 EMAIL=REPLACE_EMAIL
-# Remove the separate DOMAIN variable declaration; use my_domain in its place.
-# DOMAIN=REPLACE_DOMAIN
-# Now, update Certbot to use $my_domain:
+# Certbot will use $my_domain for the domain, ensuring consistency.
 log "Obtaining and installing SSL certificate..."
 sudo certbot --nginx --non-interactive --agree-tos --email $EMAIL -d $my_domain || {
     log "Certbot failed to obtain certificate"
     exit 1
 }
-# ===== Change Ends Here =====
-
-# Nginx unit test to reload Nginx if the test is successful
-sudo nginx -t && systemctl reload nginx
+sudo nginx -t && sudo systemctl reload nginx
 
 # Install WordPress
 sudo rm -rf /var/www/html
@@ -106,11 +108,12 @@ sed -i "s/password_here/DB_PASSWORD/g" /var/www/html/wp-config.php
 sed -i "s/database_name_here/DB_USERNAME/g" /var/www/html/wp-config.php
 sed -i "s/localhost/BACKEND_IP/g" /var/www/html/wp-config.php
 
+# Insert WordPress secret keys
 SALT=$(curl -L https://api.wordpress.org/secret-key/1.1/salt/)
 STRING='put your unique phrase here'
 printf '%s\n' "g/$STRING/d" a "$SALT" . w | ed -s /var/www/html/wp-config.php
 
-# Install the AWS CLI tool using Snap (if needed)
+# Install AWS CLI using Snap (if needed)
 snap install aws-cli --classic
 
 # Securely back up wp-config.php to S3
