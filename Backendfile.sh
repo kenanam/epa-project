@@ -33,8 +33,8 @@ username=DB_USERNAME    # Replace with your chosen database username - now corre
 password=DB_PASSWORD    # Replace with your chosen database password - now correct
 
 # 7. Save these credentials to a file (creds.txt) for backup and future reference.
-echo $password > creds.txt
-echo $username >> creds.txt
+echo $password > /home/ubuntu/creds.txt
+echo $username >> /home/ubuntu/creds.txt
 
 # 8. Create a new database for WordPress using the username as the database name.
 sudo mysql -e "CREATE DATABASE IF NOT EXISTS $username"
@@ -56,7 +56,7 @@ sudo mysql -e "FLUSH PRIVILEGES"
 #sudo sed -i "s/database_name_here/$username/g" /var/www/html/wp-config.php
 
 # 13. Back up the credentials file (creds.txt) to your S3 bucket.
-aws s3 cp /root/creds.txt s3://my-wp-deploy-bucket
+aws s3 cp /home/ubuntu/creds.txt s3://my-wp-deploy-bucket
 
 # 14. Create a backup of your database and store it on S3.
 #     (When prompted for the MySQL root password, enter the correct password.)
