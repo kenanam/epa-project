@@ -51,9 +51,9 @@ sudo mysql -e "FLUSH PRIVILEGES"
 
 # 12. Update the WordPress configuration file with the new database credentials.
 #     Make sure that /var/www/html/wp-config.php is the correct location.
-sudo sed -i "s/password_here/$password/g" /var/www/html/wp-config.php
-sudo sed -i "s/username_here/$username/g" /var/www/html/wp-config.php
-sudo sed -i "s/database_name_here/$username/g" /var/www/html/wp-config.php
+#sudo sed -i "s/password_here/$password/g" /var/www/html/wp-config.php
+#sudo sed -i "s/username_here/$username/g" /var/www/html/wp-config.php
+#sudo sed -i "s/database_name_here/$username/g" /var/www/html/wp-config.php
 
 # 13. Back up the credentials file (creds.txt) to your S3 bucket.
 aws s3 cp /root/creds.txt s3://my-wp-deploy-bucket
