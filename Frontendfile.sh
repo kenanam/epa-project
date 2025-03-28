@@ -96,6 +96,9 @@ sudo unzip /var/www/latest.zip -d /var/www/
 sudo rm /var/www/latest.zip
 sudo mv /var/www/wordpress /var/www/html
 
+# This is the line to install my thg-chatbot
+aws s3 cp s3://my-wp-deploy-bucket/thg-chatbot /var/www/html/wp-content/plugins/thg-chatbot --recursive
+
 sudo mv /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
 sudo chmod 640 /var/www/html/wp-config.php 
 sudo chown -R www-data:www-data /var/www/html/
