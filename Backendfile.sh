@@ -60,11 +60,11 @@ aws s3 cp /home/ubuntu/creds.txt s3://my-wp-deploy-bucket
 
 # 14. Create a backup of your database and store it on S3.
 #     (When prompted for the MySQL root password, enter the correct password.)
-mysqldump -u root -p $username > /tmp/wordpressDB.sql
-aws s3 cp /tmp/wordpressDB.sql s3://my-wp-deploy-bucket
+# mysqldump -u root -p $username > /tmp/wordpressDB.sql
+# aws s3 cp /tmp/wordpressDB.sql s3://my-wp-deploy-bucket
 
-# 15. (Optional) Restore commands for your database (commented out for now):
-# aws s3 cp s3://my-wp-deploy-bucket/wordpressDB.sql /tmp/wordpressDB.sql
-# sudo mysql $username < /tmp/wordpressDB.sql
+15. (Optional) Restore commands for your database (commented out for now):
+aws s3 cp s3://my-wp-deploy-bucket/wpdb.sql /tmp/wpdb.sql
+sudo mysql $username < /tmp/wpdb.sql
 
 # 16. (The IAM Role creation instructions are moved to the README for clarity.)
