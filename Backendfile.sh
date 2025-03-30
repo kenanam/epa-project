@@ -63,7 +63,7 @@ aws s3 cp /home/ubuntu/creds.txt s3://my-wp-deploy-bucket
 # mysqldump -u root -p $username > /tmp/wordpressDB.sql
 # aws s3 cp /tmp/wordpressDB.sql s3://my-wp-deploy-bucket
 
-15. (Optional) Restore commands for your database (commented out for now):
+#15. (Optional) Restore commands for your database (commented out for now):
 aws s3 cp s3://my-wp-deploy-bucket/wpdb.sql /tmp/wpdb.sql
 sudo mysql $username < /tmp/wpdb.sql
 
