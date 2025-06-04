@@ -1,0 +1,67 @@
+name: Test, Deploy Bash Script, and Launch CloudFormation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Debug SSH connection (Frontend)
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key
+        chmod 600 private_key
+        ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }} "echo 'SSH Connection Successful'"
+
+    - name: Edit Script Variables
+      run: |
+        sed -i 's/REPLACE_DOMAIN/${{ secrets.DOMAIN }}/g' ./nginx.conf
+        sed -i 's/REPLACE_DOMAIN/${{ secrets.DOMAIN }}/g' ./Frontendfile.sh
+        sed -i 's/REPLACE_EMAIL/${{ secrets.EMAIL }}/g' ./Frontendfile.sh
+        sed -i 's/FRONTEND_IP/${{ secrets.FRONTEND_IP }}/g' ./Backendfile.sh
+        sed -i 's/DB_USERNAME/${{ secrets.DB_USERNAME }}/g' ./Frontendfile.sh
+        sed -i 's/DB_PASSWORD/${{ secrets.DB_PASSWORD }}/g' ./Frontendfile.sh
+        sed -i 's/DB_USERNAME/${{ secrets.DB_USERNAME }}/g' ./Backendfile.sh
+        sed -i 's/DB_PASSWORD/${{ secrets.DB_PASSWORD }}/g' ./Backendfile.sh
+        sed -i 's/BACKEND_IP/${{ secrets.BACKEND_IP }}/g' ./Frontendfile.sh
+
+    - name: Copy FE files to VM
+      run: |
+        scp -r -i private_key -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} "${PWD}" ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }}:~
+
+    - name: Run FE setup script
+      run: |
+        ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }} 'sudo sh /home/ubuntu/epa-project/Frontendfile.sh'
+
+    - name: Debug SSH connection (Backend)
+      run: |
+        ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }} "echo 'SSH Connection Successful'"
+
+    - name: Copy BE files to VM
+      run: |
+        scp -r -i private_key -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} "${PWD}" ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }}:~
+
+    - name: Run BE setup script
+      run: |
+        ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }} 'sudo sh /home/ubuntu/epa-project/Backendfile.sh'
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Deploy CloudFormation Stack
+      run: |
+        aws cloudformation deploy \
+          --template-file updated-infra-with-alarm-test.yaml \
+          --stack-name epa-monitoring-stack \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --no-fail-on-empty-changeset
