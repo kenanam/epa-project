@@ -13,6 +13,7 @@
 # - For your backend instance, the public IP is: 13.43.103.133
 
 # 1. Update and upgrade system packages.
+.
 sudo apt -y update && sudo apt -y upgrade
 
 # 2. Install the AWS CLI using Snap to interact with AWS services.
