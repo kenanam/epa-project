@@ -1,0 +1,197 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  # Security Group shared by both EC2 instances with necessary ports opened
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for frontend and backend instances
+      VpcId: vpc-06235168ac7aa339b
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  # Frontend EC2 instance to host web server
+  FrontendInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0a94c8e4ca2674d5a
+      KeyName: wordpress-auto-key
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      IamInstanceProfile: MyS3FullAccess
+      Tags:
+        - Key: Name
+          Value: frontend-webserver
+
+  # Backend EC2 instance to host the database
+  BackendInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0a94c8e4ca2674d5a
+      KeyName: wordpress-auto-key
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      IamInstanceProfile: MyS3FullAccess
+      Tags:
+        - Key: Name
+          Value: backend-db
+
+  # Associate reserved Elastic IP with the frontend instance
+  FrontendElasticIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref FrontendInstance
+      AllocationId: eipalloc-0a5de9b515ff3ffa4
+
+  # Associate reserved Elastic IP with the backend instance
+  BackendElasticIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref BackendInstance
+      AllocationId: eipalloc-080407567284d25a8
+
+  ###############################
+  # CloudWatch Alarms - Frontend
+  ###############################
+
+  FrontendCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "CPU usage exceeds 80%"
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref FrontendInstance
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - arn:aws:sns:eu-west-2:767397855522:cloudwatch-alerts
+      TreatMissingData: notBreaching
+
+  FrontendDiskUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "VolumeWriteOps exceeds 300"
+      Namespace: AWS/EC2
+      MetricName: VolumeWriteOps
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref FrontendInstance
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 300
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - arn:aws:sns:eu-west-2:767397855522:cloudwatch-alerts
+      TreatMissingData: notBreaching
+
+  FrontendStatusCheckAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Frontend EC2 instance failed status check"
+      Namespace: AWS/EC2
+      MetricName: StatusCheckFailed
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref FrontendInstance
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - arn:aws:sns:eu-west-2:767397855522:cloudwatch-alerts
+      TreatMissingData: notBreaching
+
+  ###############################
+  # CloudWatch Alarms - Backend
+  ###############################
+
+  BackendCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Backend CPU usage exceeds 80%"
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref BackendInstance
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - arn:aws:sns:eu-west-2:767397855522:cloudwatch-alerts
+      TreatMissingData: notBreaching
+
+  BackendDiskUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Backend VolumeWriteOps exceeds 300"
+      Namespace: AWS/EC2
+      MetricName: VolumeWriteOps
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref BackendInstance
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 300
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - arn:aws:sns:eu-west-2:767397855522:cloudwatch-alerts
+      TreatMissingData: notBreaching
+
+  BackendStatusCheckAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Backend EC2 instance failed status check"
+      Namespace: AWS/EC2
+      MetricName: StatusCheckFailed
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref BackendInstance
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - arn:aws:sns:eu-west-2:767397855522:cloudwatch-alerts
+      TreatMissingData: notBreaching
+
+Outputs:
+  FrontendInstanceId:
+    Description: Instance ID of the frontend web server
+    Value: !Ref FrontendInstance
+
+  BackendInstanceId:
+    Description: Instance ID of the backend database server
+    Value: !Ref BackendInstance
