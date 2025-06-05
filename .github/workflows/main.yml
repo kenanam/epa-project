@@ -1,88 +1,85 @@
 name: Test and Deploy Bash Script
- 
+
 on:
-
   push:
-
     branches:
-
       - main
- 
+  workflow_dispatch:
+    inputs:
+      refresh_infra:
+        description: 'Do you want to refresh the infrastructure?'
+        required: true
+        default: 'false' 
+
 jobs:
-
   deploy:
-
     runs-on: ubuntu-latest
- 
+
     steps:
-
     - name: Checkout code
-
       uses: actions/checkout@v4
- 
+      
+      # Optional CloudFormation Deploy Step (only if refresh is triggered)
+    - name: Refresh infrastructure via CloudFormation
+      if: ${{ github.event.inputs.refresh_infra == 'true' }}
+      run: |
+        aws cloudformation deploy \
+          --template-file infrastructure.yaml \
+          --stack-name wordpress-stack \
+          --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+          --region eu-west-2
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
+
     - name: Debug SSH connection
-
       run: |
-
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key
-
         chmod 600 private_key
-
         ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }} "echo 'SSH Connection Successful'"
- 
+
     - name: Edit Script Variables
-
       run: |
-
         sed -i 's/REPLACE_DOMAIN/${{ secrets.DOMAIN }}/g' ./nginx.conf
-
         sed -i 's/REPLACE_DOMAIN/${{ secrets.DOMAIN }}/g' ./Frontendfile.sh
-
         sed -i 's/REPLACE_EMAIL/${{ secrets.EMAIL }}/g' ./Frontendfile.sh
-
         sed -i 's/FRONTEND_IP/${{ secrets.FRONTEND_IP }}/g' ./Backendfile.sh
-
         sed -i 's/DB_USERNAME/${{ secrets.DB_USERNAME }}/g' ./Frontendfile.sh
-
         sed -i 's/DB_PASSWORD/${{ secrets.DB_PASSWORD }}/g' ./Frontendfile.sh
-
         sed -i 's/DB_USERNAME/${{ secrets.DB_USERNAME }}/g' ./Backendfile.sh
-
         sed -i 's/DB_PASSWORD/${{ secrets.DB_PASSWORD }}/g' ./Backendfile.sh
-
         sed -i 's/BACKEND_IP/${{ secrets.BACKEND_IP }}/g' ./Frontendfile.sh
 
-
     - name: Copy files to VM
-
       run: |
-
         scp -r -i private_key -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} "${PWD}" ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }}:~
- 
+
     - name: Run setup script
-
       run: |
-
         ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }} 'sudo sh /home/ubuntu/epa-project/Frontendfile.sh'
- 
- 
-      # Backend
 
+    # Backend
     - name: Debug BE SSH connection
-
       run: |
-
         ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }} "echo 'SSH Connection Successful'"
 
     - name: Copy BE files to VM
-
       run: |
-
         scp -r -i private_key -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} "${PWD}" ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }}:~
- 
+
     - name: Run BE setup script
-
       run: |
-
         ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }} 'sudo sh /home/ubuntu/epa-project/Backendfile.sh'
- 
+
+    # Optional CloudFormation Deploy Step (only if refresh is triggered)
+    - name: Refresh infrastructure via CloudFormation
+      if: ${{ github.event.inputs.refresh_infra == 'true' }}
+      run: |
+        aws cloudformation deploy \
+          --template-file infrastructure.yaml \
+          --stack-name wordpress-stack \
+          --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+          --region eu-west-2
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
