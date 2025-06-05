@@ -1,9 +1,15 @@
-name: Test, Deploy Bash Script, and Launch CloudFormation
+name: Test and Deploy Bash Script
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      refresh_infra:
+        description: 'Do you want to refresh the infrastructure?'
+        required: true
+        default: 'false' 
 
 jobs:
   deploy:
@@ -12,8 +18,23 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      
+      # Optional CloudFormation Deploy Step (only if refresh is triggered)
+    - name: Refresh infrastructure via CloudFormation
+      if: ${{ github.event.inputs.refresh_infra == 'true' }}
+      run: |
+        aws cloudformation deploy \
+          --template-file infrastructure.yaml \
+          --stack-name wordpress-stack \
+          --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+          --region eu-west-2
+          
+      # secret keys aws 
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
 
-    - name: Debug SSH connection (Frontend)
+    - name: Debug SSH connection
       run: |
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key
         chmod 600 private_key
@@ -31,15 +52,16 @@ jobs:
         sed -i 's/DB_PASSWORD/${{ secrets.DB_PASSWORD }}/g' ./Backendfile.sh
         sed -i 's/BACKEND_IP/${{ secrets.BACKEND_IP }}/g' ./Frontendfile.sh
 
-    - name: Copy FE files to VM
+    - name: Copy files to VM
       run: |
         scp -r -i private_key -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} "${PWD}" ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }}:~
 
-    - name: Run FE setup script
+    - name: Run setup script
       run: |
         ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }} 'sudo sh /home/ubuntu/epa-project/Frontendfile.sh'
 
-    - name: Debug SSH connection (Backend)
+    # Backend
+    - name: Debug BE SSH connection
       run: |
         ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }} "echo 'SSH Connection Successful'"
 
@@ -50,18 +72,3 @@ jobs:
     - name: Run BE setup script
       run: |
         ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }} 'sudo sh /home/ubuntu/epa-project/Backendfile.sh'
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
-
-    - name: Deploy CloudFormation Stack
-      run: |
-        aws cloudformation deploy \
-          --template-file updated-infra-with-alarm-test.yaml \
-          --stack-name epa-monitoring-stack \
-          --capabilities CAPABILITY_NAMED_IAM \
-          --no-fail-on-empty-changeset
