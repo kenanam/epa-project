@@ -70,16 +70,3 @@ jobs:
     - name: Run BE setup script
       run: |
         ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.BACKEND_IP }} 'sudo sh /home/ubuntu/epa-project/Backendfile.sh'
-
-    # Optional CloudFormation Deploy Step (only if refresh is triggered)
-    - name: Refresh infrastructure via CloudFormation
-      if: ${{ github.event.inputs.refresh_infra == 'true' }}
-      run: |
-        aws cloudformation deploy \
-          --template-file infrastructure.yaml \
-          --stack-name wordpress-stack \
-          --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
-          --region eu-west-2
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
