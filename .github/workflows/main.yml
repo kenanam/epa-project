@@ -24,7 +24,7 @@ jobs:
       if: ${{ github.event.inputs.refresh_infra == 'true' }}
       run: |
         aws cloudformation deploy \
-          --template-file infrastructure.yaml \
+          --template-file infrastructure-setup.yaml \
           --stack-name wordpress-stack \
           --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
           --region eu-west-2
