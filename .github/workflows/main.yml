@@ -60,6 +60,12 @@ jobs:
       run: |
         ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }} 'sudo sh /home/ubuntu/epa-project/Frontendfile.sh'
 
+    - name: Unit test PHP syntax in chatbot plugin (continue on error)
+      continue-on-error: true
+      run: |
+          ssh -i private_key -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} \
+          ${{ secrets.SSH_USER }}@${{ secrets.FRONTEND_IP }} 'find /var/www/html/wp-content/plugins/thg-chatbot -name "*.php" -exec php -l {} \;'
+
     # Backend
     - name: Debug BE SSH connection
       run: |
