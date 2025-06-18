@@ -51,7 +51,7 @@ User stories clearly define project requirements and acceptance criteria. Exampl
 - [Monitoring with AWS CloudWatch](#)
 - [Database Backup Automation](#)
 
-(Create these issues individually in GitHub using provided templates.)
+
 
 ---
 
